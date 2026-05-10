@@ -105,11 +105,16 @@ pip uninstall -y jax jaxlib 2>/dev/null || true
 #
 #    The -f flag is required: CUDA jaxlib wheels are not on PyPI.
 # ---------------------------------------------------------------------------
-echo "[setup] Installing JAX 0.4.30 (cuda12_pip) + all runtime deps..."
+echo "[setup] Installing JAX 0.4.30 (cuda12_pip) + runtime deps (excluding flax)..."
+# flax is installed separately with --no-deps below.
+# Reason: flax's declared dependencies include orbax-checkpoint, which depends
+# on tensorstore.  tensorstore has no cp311 manylinux2014 wheel — only
+# manylinux_2_28 — and building from source requires Bazel 8 (GLIBC 2.25).
+# CentOS 7 has GLIBC 2.17, so the build always fails.
+# btcfm only uses flax.linen (neural network layers); flax.training.orbax_utils
+# is never imported.  Installing flax with --no-deps is safe.
 pip install --user \
     "jax[cuda12_pip]==0.4.30" \
-    "flax>=0.8.0,<0.9.0" \
-    "orbax-checkpoint<0.5.0" \
     "optax>=0.2.0" \
     "numpy>=1.26" \
     "polars>=1.40,<2" \
@@ -122,6 +127,9 @@ pip install --user \
     "pytest>=8.0" \
     "pytest-asyncio>=0.23" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+
+echo "[setup] Installing flax (no-deps — skips orbax-checkpoint → tensorstore)..."
+pip install --user --no-deps "flax>=0.8.0,<0.9.0"
 
 # ---------------------------------------------------------------------------
 # 4. Install the btcfm package in editable mode
