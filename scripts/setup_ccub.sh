@@ -38,7 +38,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # FILL IN: Set your /work path.
 # ---------------------------------------------------------------------------
-export BTCFM_ROOT=/work/ciad/<lab>/<user>/btcfm   # FILL IN
+export BTCFM_ROOT=/work/ciad/ma4082ja/poly/poly 
 
 # All Python packages land here (pip --user redirect)
 export PYTHONUSERBASE=$BTCFM_ROOT
