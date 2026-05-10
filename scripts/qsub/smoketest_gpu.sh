@@ -13,31 +13,26 @@
 # < 5 minutes on any GPU.  If this script passes, submit train_default.sh.
 #
 # Usage:
-#   sbatch scripts/sbatch/smoketest_gpu.sh
+#   qsub scripts/qsub/smoketest_gpu.sh
 # =============================================================================
 
-#SBATCH --job-name=btcfm-smoke
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=8G
-#SBATCH --time=00:30:00
+#$ -N btcfm-smoke          # Job name
+#$ -q gpu                  # GPU queue (2 concurrent job slots; provides 1 GPU)
+#$ -pe smp 4               # 4 CPU cores (shared-memory parallel environment)
+#$ -l h_rt=00:30:00        # Walltime limit (HH:MM:SS)
+#$ -l h_vmem=2G            # Memory per slot: 2G × 4 slots = 8G total
+#$ -cwd                    # Run from submission directory
 
-# FILL IN: Same partition/account as train_default.sh.
-#SBATCH --partition=<FILL IN>
-##SBATCH --account=<FILL IN>
-
-# FILL IN: Replace with your /work path.
-#SBATCH --output=/work/ciad/<FILL IN: lab/user>/btcfm/logs/%x-%j.out
-#SBATCH --error=/work/ciad/<FILL IN: lab/user>/btcfm/logs/%x-%j.err
+# FILL IN: Absolute path to your logs directory (must exist before job starts).
+#$ -o /work/ciad/ma4082ja/poly/poly/logs/
+#$ -e /work/ciad/ma4082ja/poly/poly/logs/
 
 # =============================================================================
 # Environment — identical to train_default.sh
 # =============================================================================
-export BTCFM_ROOT=/work/ciad/<FILL IN: lab/user>/btcfm
+export BTCFM_ROOT=/work/ciad/ma4082ja/poly/poly
 export PYTHONUSERBASE=$BTCFM_ROOT
-export SMOKE_DIR=$BTCFM_ROOT/smoke/$SLURM_JOB_ID
+export SMOKE_DIR=$BTCFM_ROOT/smoke/$JOB_ID   # $JOB_ID set by Grid Engine
 export LOG_DIR=$BTCFM_ROOT/logs
 export XLA_FLAGS="--xla_gpu_deterministic_ops=true"
 
@@ -48,7 +43,7 @@ mkdir -p "$SMOKE_DIR" "$LOG_DIR"
 
 echo "============================================================"
 echo "btcfm GPU smoke-test (small.yaml, 200 steps)"
-echo "  SLURM_JOB_ID : $SLURM_JOB_ID"
+echo "  JOB_ID       : $JOB_ID"
 echo "  Node         : $(hostname)"
 echo "  BTCFM_ROOT   : $BTCFM_ROOT"
 echo "  SMOKE_DIR    : $SMOKE_DIR"
@@ -72,7 +67,7 @@ echo "[smoke] Running synthetic training (small.yaml, 200 steps)..."
 python -m btcfm.train \
     --config configs/small.yaml \
     --synthetic \
-    --run-id "$SLURM_JOB_ID" \
+    --run-id "$JOB_ID" \
     --output-dir "$SMOKE_DIR"
 
 echo ""
@@ -83,5 +78,5 @@ echo "  JSONL log : $SMOKE_DIR/train.jsonl"
 echo "  GPU info  : $SMOKE_DIR/run_metadata.json"
 echo ""
 echo "Submit the full training run:"
-echo "  sbatch scripts/sbatch/train_default.sh"
+echo "  qsub scripts/qsub/train_default.sh"
 echo "============================================================"

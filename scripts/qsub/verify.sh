@@ -2,53 +2,45 @@
 # =============================================================================
 # btcfm — test-set verification (decoupled from training)
 #
-# # DESIGN: Verification is a separate sbatch job rather than appended to the
+# DESIGN: Verification is a separate qsub job rather than appended to the
 # training script tail.
 #   - A 50k-step training run uses 6–7 h of an 8-h walltime window.
-#     Running verification in the same job risks OOM or walltime expiry after
-#     a long training run.
-#   - Decoupling lets the user iterate on diagnostic code (reliability bins,
+#     Running verification in the same job risks OOM or walltime expiry.
+#   - Decoupling lets you iterate on diagnostic code (reliability bins,
 #     CRPS horizons) and re-run verification without retraining.
-#   - The job can be submitted with --dependency=afterok:<train_job_id> to
-#     chain it automatically, or run manually after inspecting training logs.
 #
-# Usage (auto-submit after training):
-#   sbatch --dependency=afterok:<TRAIN_JOB_ID> scripts/sbatch/verify.sh
+# Usage (auto-chain — submits now, runs only after train job finishes):
+#   qsub -hold_jid <TRAIN_JOB_ID> -v TRAIN_JOB_ID=<TRAIN_JOB_ID> \
+#        scripts/qsub/verify.sh
 #
 # Usage (manual, after training completes):
-#   TRAIN_JOB_ID=<job_id> sbatch scripts/sbatch/verify.sh
+#   TRAIN_JOB_ID=<job_id> qsub scripts/qsub/verify.sh
 #
-# The TRAIN_JOB_ID variable selects which run directory to load the
-# checkpoint from.  It defaults to the most recent run if not set.
+# TRAIN_JOB_ID selects which run directory to load the checkpoint from.
 # =============================================================================
 
-#SBATCH --job-name=btcfm-verify
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --gres=gpu:1          # GPU for faster ensemble generation
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
-#SBATCH --time=01:00:00
+#$ -N btcfm-verify         # Job name
+#$ -q gpu                  # GPU queue (for faster ensemble generation)
+#$ -pe smp 4               # 4 CPU cores
+#$ -l h_rt=01:00:00        # Walltime limit (HH:MM:SS)
+#$ -l h_vmem=4G            # Memory per slot: 4G × 4 slots = 16G total
+#$ -cwd                    # Run from submission directory
 
-# FILL IN: Same partition/account as train_default.sh.
-#SBATCH --partition=<FILL IN>
-##SBATCH --account=<FILL IN>
-
-# FILL IN: Replace with your /work path.
-#SBATCH --output=/work/ciad/<FILL IN: lab/user>/btcfm/logs/%x-%j.out
-#SBATCH --error=/work/ciad/<FILL IN: lab/user>/btcfm/logs/%x-%j.err
+# FILL IN: Absolute path to your logs directory (must exist before job starts).
+#$ -o /work/ciad/ma4082ja/poly/poly/logs/
+#$ -e /work/ciad/ma4082ja/poly/poly/logs/
 
 # =============================================================================
 # Environment
 # =============================================================================
-export BTCFM_ROOT=/work/ciad/<FILL IN: lab/user>/btcfm
+export BTCFM_ROOT=/work/ciad/ma4082ja/poly/poly
 export PYTHONUSERBASE=$BTCFM_ROOT
 export DATA_DIR=$BTCFM_ROOT/data/coinbase
 export LOG_DIR=$BTCFM_ROOT/logs
 export XLA_FLAGS="--xla_gpu_deterministic_ops=true"
 
-# TRAIN_JOB_ID: set externally or hardcode the training job's SLURM_JOB_ID.
-# If not set, the script will fail with a clear error.
+# TRAIN_JOB_ID: passed via -v flag (qsub -v TRAIN_JOB_ID=...) or set in env.
+# If not set, the script fails with a clear error.
 TRAIN_JOB_ID="${TRAIN_JOB_ID:-}"
 
 # =============================================================================
@@ -57,8 +49,8 @@ set -euo pipefail
 if [ -z "$TRAIN_JOB_ID" ]; then
     echo "ERROR: TRAIN_JOB_ID is not set." >&2
     echo "Usage:" >&2
-    echo "  TRAIN_JOB_ID=<job_id> sbatch scripts/sbatch/verify.sh" >&2
-    echo "  sbatch --dependency=afterok:<job_id> scripts/sbatch/verify.sh" >&2
+    echo "  TRAIN_JOB_ID=<job_id> qsub scripts/qsub/verify.sh" >&2
+    echo "  qsub -hold_jid <job_id> -v TRAIN_JOB_ID=<job_id> scripts/qsub/verify.sh" >&2
     exit 1
 fi
 
@@ -75,7 +67,7 @@ mkdir -p "$VERIFY_DIR" "$LOG_DIR"
 
 echo "============================================================"
 echo "btcfm test-set verification"
-echo "  SLURM_JOB_ID  : $SLURM_JOB_ID"
+echo "  JOB_ID        : $JOB_ID"
 echo "  TRAIN_JOB_ID  : $TRAIN_JOB_ID"
 echo "  Node          : $(hostname)"
 echo "  RUN_DIR       : $RUN_DIR"
@@ -89,7 +81,6 @@ module load python/3.11/anaconda/2024.02
 module load cuda/12.1
 # cuDNN is bundled inside the jax[cuda12_pip] wheel — no cuDNN module needed.
 
-# GPU pre-flight (verification also uses GPU for ensemble generation)
 echo "[preflight] Running GPU check..."
 python -m btcfm.runtime.preflight
 echo "[preflight] GPU check passed."
