@@ -148,10 +148,10 @@ Two configs are provided:
 ## Running on CCuB (Centre de Calcul de l'Université de Bourgogne)
 
 CCuB uses a **PYTHONUSERBASE + `--user`** install model (no venv/conda),
-GPU CUDA libraries provided by the **PyTorch 2.0.0/gpu framework module**
-(CUDA 11.7/11.8), and **`/work`-based persistent storage** (no `$SCRATCH`).
-All three constraints are reflected in the scripts below — do not substitute
-generic cluster patterns.
+a standalone **CUDA 11.4 + cuDNN 8.2** module stack, Python 3.11 via
+`python/3.11/anaconda/2024.02`, and **`/work`-based persistent storage**
+(no `$SCRATCH`).  All constraints are reflected in the scripts below — do
+not substitute generic cluster patterns.
 
 ### 1. One-time environment setup (login node)
 
@@ -171,11 +171,12 @@ bash scripts/setup_ccub.sh
 `setup_ccub.sh` is **idempotent** — safe to re-run after updating
 `requirements.txt` or after a JAX wheel issue.  What it does:
 
-1. Loads `tensorflow/2.11.0/gpu` and `pytorch/2.0.0/gpu` (the CUDA 11 stack).
-2. Installs **JAX 0.4.30** with the `cuda11_pip` extra.
-   JAX 0.4.30 is the last release with CUDA 11 wheels; everything ≥ 0.4.31
-   is CUDA 12 only.  The `pytorch/2.0.0/gpu` module bundles CUDA 11.7/11.8,
-   so the JAX and CUDA versions must match.
+1. Loads `python/3.11/anaconda/2024.02`, `cuda/11.4.4`, `cudnn/8.2.4.15-11.4`.
+   No tensorflow or pytorch framework module is needed.
+2. Installs **JAX 0.4.30** + `jaxlib==0.4.30+cuda11.cudnn82` from the JAX
+   CUDA releases page.  JAX 0.4.30 is the last release with CUDA 11 wheels;
+   everything ≥ 0.4.31 is CUDA 12 only.  The `cuda11_pip` pip extra was
+   removed from JAX ≥ 0.4.15 — install jaxlib with the explicit suffix.
 3. Installs all remaining deps from `requirements.txt` (excludes jax/jaxlib).
 4. Installs the `btcfm` package with `--no-deps` (protects the cuda11 jaxlib).
 5. Confirms JAX imports cleanly (CPU-only; GPU check happens in the sbatch job).
@@ -315,16 +316,19 @@ The most common cause is a JAX/CUDA version mismatch.
 
 1. Check what jaxlib is installed:
    ```bash
-   module load pytorch/2.0.0/gpu
+   module load python/3.11/anaconda/2024.02
+   export PYTHONUSERBASE=$BTCFM_ROOT
    pip show jaxlib
    ```
-   The version string must contain `cuda11` (e.g. `0.4.30+cuda11.cudnn86`).
+   The version string must contain `cuda11` (e.g. `0.4.30+cuda11.cudnn82`).
    If it shows a CPU-only version (`0.4.30`), the cuda11 jaxlib was
    overwritten — re-run `setup_ccub.sh`.
 
-2. Confirm the module is loaded in the sbatch script:
+2. Confirm the three modules are loaded in the sbatch script:
    ```bash
-   module load pytorch/2.0.0/gpu   # must precede python calls
+   module load python/3.11/anaconda/2024.02
+   module load cuda/11.4.4
+   module load cudnn/8.2.4.15-11.4
    ```
 
 3. Confirm `PYTHONUSERBASE` is exported before `python -m btcfm.runtime.preflight`.
@@ -332,17 +336,17 @@ The most common cause is a JAX/CUDA version mismatch.
 
 **JAX installed with wrong CUDA version**
 
-Symptoms: import error mentioning `libcuda.so` or `libcudart.so`.
+Symptoms: import error mentioning `libcuda.so`, `libcudart.so`, or a cuDNN
+version mismatch.
 
-Fix: re-run `setup_ccub.sh` and confirm it uses `cuda11_pip`, not `cuda12`:
+Fix: re-run `setup_ccub.sh`.  The correct install command is:
 ```bash
-pip install --user "jax[cuda11_pip]==0.4.30" \
+pip install --user jax==0.4.30 "jaxlib==0.4.30+cuda11.cudnn82" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
-If pip pulled `cuda12` (e.g. you ran `pip install jax` without the pin),
-the CUDA 12 jaxlib will fail to find the CUDA 11 libraries from the
-PyTorch module.
+Do NOT use `jax[cuda11_pip]` — that pip extra was removed from JAX ≥ 0.4.15.
+Do NOT use a `cuda12` jaxlib — CCuB provides CUDA 11.4.
 
 **GPU utilisation below 80 %**
 

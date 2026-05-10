@@ -57,8 +57,9 @@ echo ""
 
 cd "$BTCFM_ROOT"
 
-module load tensorflow/2.11.0/gpu
-module load pytorch/2.0.0/gpu
+module load python/3.11/anaconda/2024.02
+module load cuda/11.4.4
+module load cudnn/8.2.4.15-11.4
 
 # GPU pre-flight
 echo "[preflight] Running GPU check..."

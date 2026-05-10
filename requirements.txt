@@ -1,13 +1,16 @@
 # btcfm runtime requirements
 #
-# JAX is NOT listed here — it must be installed BEFORE this file with the
-# correct CUDA variant for your cluster.  On CCuB (CUDA 11):
+# JAX is NOT listed here — it must be installed BEFORE this file.
+# On CCuB (Python 3.11 + CUDA 11.4 + cuDNN 8.2):
 #
-#   pip install --user "jax[cuda11_pip]==0.4.30" \
+#   pip install --user jax==0.4.30 "jaxlib==0.4.30+cuda11.cudnn82" \
 #       -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 #
-# Listing jax/jaxlib here would cause pip to overwrite the cuda11 jaxlib
-# with a CPU-only build, silently breaking GPU support.
+# The cuda11_pip *extra* was removed from JAX >= 0.4.15.  Install jax (pure
+# Python) and jaxlib (CUDA binary) separately with an explicit version suffix.
+# The suffix must match the cuDNN version provided by your CUDA module:
+#   cuda11.cudnn82  ← cudnn/8.2.4.15-11.4  (CCuB default)
+#   cuda11.cudnn86  ← if your cluster has cuDNN 8.6
 #
 # After installing JAX, run:
 #   pip install --user -r requirements.txt
@@ -17,7 +20,9 @@ flax>=0.8.0
 optax>=0.2.0
 numpy>=1.26
 polars>=1.40,<2
-pyarrow>=14.0
+# <18.0: pyarrow 18+ dropped pre-built cp311 manylinux wheels on this platform;
+#         building from source requires Rust (not available on CCuB).
+pyarrow>=14.0,<18.0
 requests>=2.31
 websockets>=12.0
 pyyaml>=6.0

@@ -72,8 +72,9 @@ cd "$BTCFM_ROOT"
 # Load GPU runtime (provides CUDA 11.7/11.8 via PyTorch 2.0.0)
 # Do NOT change these module names — they must match setup_ccub.sh.
 # ---------------------------------------------------------------------------
-module load tensorflow/2.11.0/gpu
-module load pytorch/2.0.0/gpu
+module load python/3.11/anaconda/2024.02
+module load cuda/11.4.4
+module load cudnn/8.2.4.15-11.4
 
 # ---------------------------------------------------------------------------
 # GPU pre-flight check
