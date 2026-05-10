@@ -9,19 +9,22 @@
 #   1. Edit BTCFM_ROOT below to match your /work path.
 #   2. bash scripts/setup_ccub.sh
 #
-# Module stack (no tensorflow or pytorch module required):
+# Module stack:
 #   python/3.11/anaconda/2024.02   — Python 3.11
-#   cuda/11.4.4                    — CUDA 11.4 runtime
-#   cudnn/8.2.4.15-11.4            — cuDNN 8.2 (paired with CUDA 11.4)
+#   cuda/12.1                      — CUDA 12 runtime + driver headers
+#
+# No separate cuDNN module is needed: jax[cuda12_pip] bundles its own cuDNN
+# alongside the wheel.  Only the NVIDIA GPU driver (libcuda.so) must be
+# present at runtime — that is always the case on GPU compute nodes.
 #
 # What this script does
 # ---------------------
-# 1. Loads Python 3.11 + CUDA 11.4 + cuDNN 8.2.
-# 2. Installs JAX 0.4.30 with the cuda11.cudnn82 jaxlib wheel — the last JAX
-#    release with CUDA 11 wheels (0.4.31+ is CUDA 12 only).
+# 1. Loads Python 3.11 + CUDA 12.1.
+# 2. Installs JAX with the cuda12_pip extra, which bundles cuDNN and the
+#    CUDA runtime libraries into pip packages (no system cuDNN required).
 # 3. Installs all remaining runtime deps from requirements.txt.
-# 4. Installs the btcfm package in editable mode (--no-deps to protect the
-#    cuda11 jaxlib from being overwritten by a CPU-only build).
+# 4. Installs the btcfm package in editable mode (--no-deps to protect
+#    the cuda12 jaxlib from being overwritten by a CPU-only build).
 # 5. Sanity-imports JAX to confirm the install is clean.
 #    GPU is NOT visible on the login node — full GPU check happens in
 #    smoketest_gpu.sh.
@@ -38,7 +41,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # FILL IN: Set your /work path.
 # ---------------------------------------------------------------------------
-export BTCFM_ROOT=/work/ciad/ma4082ja/poly/poly 
+export BTCFM_ROOT=/work/ciad/ma4082ja/poly/poly
 
 # All Python packages land here (pip --user redirect)
 export PYTHONUSERBASE=$BTCFM_ROOT
@@ -58,35 +61,32 @@ if [ ! -f "pyproject.toml" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 1. Load Python 3.11 + CUDA 11.4 + cuDNN 8.2
-#
-#    We do NOT load tensorflow/2.11.0/gpu or pytorch/2.0.0/gpu — those
-#    modules force Python 3.10 and we don't need them.  JAX only needs the
-#    CUDA runtime from the module system.
+# 1. Load Python 3.11 + CUDA 12
 # ---------------------------------------------------------------------------
 module load python/3.11/anaconda/2024.02
-module load cuda/11.4.4
-module load cudnn/8.2.4.15-11.4
+module load cuda/12.1
 echo "[setup] Modules loaded."
 echo "        Python : $(python --version)"
-echo "        CUDA   : $(nvcc --version 2>/dev/null | grep 'release' || echo 'nvcc not on PATH (OK — runtime is loaded)')"
 
 # ---------------------------------------------------------------------------
-# 2. Install JAX 0.4.30 + cuda11.cudnn82 jaxlib
+# 2. Install JAX with CUDA 12 bundled (includes cuDNN via pip packages)
 #
-#    The suffix +cuda11.cudnn82 matches the cuDNN 8.2 module loaded above.
-#    Do NOT use jax[cuda11_pip] — that extra was removed from JAX >= 0.4.15.
-#    Do NOT omit the -f flag — the CUDA wheels are not on PyPI.
+#    cuda12_pip bundles the CUDA 12 and cuDNN libraries alongside the
+#    jaxlib wheel — no separate cuDNN module is required.
+#    Only the NVIDIA GPU driver (libcuda.so) must exist at runtime, which
+#    is always present on GPU compute nodes.
+#
+#    Do NOT pin to jax==0.4.30 here: that version targeted CUDA 11.
+#    Let pip install the latest JAX that supports Python 3.11 + CUDA 12.
 # ---------------------------------------------------------------------------
-echo "[setup] Installing JAX 0.4.30 + cuda11.cudnn82 jaxlib..."
-pip install --user jax==0.4.30 \
-    "jaxlib==0.4.30+cuda11.cudnn82" \
+echo "[setup] Installing JAX with CUDA 12 (cuda12_pip)..."
+pip install --user "jax[cuda12_pip]" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 # ---------------------------------------------------------------------------
 # 3. Install remaining runtime dependencies
 #    requirements.txt intentionally excludes jax/jaxlib to avoid overwriting
-#    the cuda11 build with a CPU-only wheel.
+#    the cuda12 build with a CPU-only wheel.
 # ---------------------------------------------------------------------------
 echo "[setup] Installing runtime dependencies..."
 pip install --user -r requirements.txt
@@ -94,7 +94,7 @@ pip install --user -r requirements.txt
 # ---------------------------------------------------------------------------
 # 4. Install the btcfm package in editable mode
 #    --no-deps: do NOT let pip resolve jax/jaxlib from pyproject.toml and
-#    overwrite the cuda11 jaxlib that was installed in step 2.
+#    overwrite the cuda12 jaxlib that was installed in step 2.
 # ---------------------------------------------------------------------------
 echo "[setup] Installing btcfm (editable, no-deps)..."
 pip install --user --no-deps -e .
@@ -109,9 +109,12 @@ import jax
 print(f'JAX {jax.__version__} imported OK')
 try:
     import jaxlib
-    print(f'jaxlib {jaxlib.__version__}')
-    if 'cuda11' not in jaxlib.__version__:
-        print('WARNING: jaxlib version does not contain cuda11 — GPU may not work')
+    v = jaxlib.__version__
+    print(f'jaxlib {v}')
+    if 'cuda12' not in v:
+        print('WARNING: jaxlib version does not contain cuda12 — GPU may not work')
+    else:
+        print('cuda12 confirmed in jaxlib version string.')
 except Exception as e:
     print(f'jaxlib import warning: {e}')
 "

@@ -1,16 +1,14 @@
 # btcfm runtime requirements
 #
 # JAX is NOT listed here — it must be installed BEFORE this file.
-# On CCuB (Python 3.11 + CUDA 11.4 + cuDNN 8.2):
+# On CCuB (Python 3.11 + CUDA 12, no standalone cuDNN module):
 #
-#   pip install --user jax==0.4.30 "jaxlib==0.4.30+cuda11.cudnn82" \
+#   pip install --user "jax[cuda12_pip]" \
 #       -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 #
-# The cuda11_pip *extra* was removed from JAX >= 0.4.15.  Install jax (pure
-# Python) and jaxlib (CUDA binary) separately with an explicit version suffix.
-# The suffix must match the cuDNN version provided by your CUDA module:
-#   cuda11.cudnn82  ← cudnn/8.2.4.15-11.4  (CCuB default)
-#   cuda11.cudnn86  ← if your cluster has cuDNN 8.6
+# cuda12_pip bundles cuDNN alongside the jaxlib wheel — no cuDNN module needed.
+# Only the GPU driver (libcuda.so) must be present, which is always true on
+# GPU compute nodes.
 #
 # After installing JAX, run:
 #   pip install --user -r requirements.txt

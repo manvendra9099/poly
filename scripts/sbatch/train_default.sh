@@ -73,8 +73,8 @@ cd "$BTCFM_ROOT"
 # Do NOT change these module names — they must match setup_ccub.sh.
 # ---------------------------------------------------------------------------
 module load python/3.11/anaconda/2024.02
-module load cuda/11.4.4
-module load cudnn/8.2.4.15-11.4
+module load cuda/12.1
+# cuDNN is bundled inside the jax[cuda12_pip] wheel — no cuDNN module needed.
 
 # ---------------------------------------------------------------------------
 # GPU pre-flight check
