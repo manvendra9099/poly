@@ -1,0 +1,29 @@
+# btcfm runtime requirements
+#
+# JAX is NOT listed here — it must be installed BEFORE this file with the
+# correct CUDA variant for your cluster.  On CCuB (CUDA 11):
+#
+#   pip install --user "jax[cuda11_pip]==0.4.30" \
+#       -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+#
+# Listing jax/jaxlib here would cause pip to overwrite the cuda11 jaxlib
+# with a CPU-only build, silently breaking GPU support.
+#
+# After installing JAX, run:
+#   pip install --user -r requirements.txt
+#   pip install --user --no-deps -e .
+
+flax>=0.8.0
+optax>=0.2.0
+numpy>=1.26
+polars>=1.40,<2
+pyarrow>=14.0
+requests>=2.31
+websockets>=12.0
+pyyaml>=6.0
+pydantic>=2.0
+matplotlib>=3.8
+
+# Development / testing
+pytest>=8.0
+pytest-asyncio>=0.23

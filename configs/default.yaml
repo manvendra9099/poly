@@ -1,0 +1,45 @@
+# btcfm default configuration — research-grade, GPU-targeting.
+#
+# WARNING: do NOT cite calibration numbers produced from small.yaml.
+# small.yaml is for CI and smoke-tests only.  Calibration claims must
+# come from a full training run using this config on a GPU, with the
+# held-out test window (days 165-180 of the 180-day data window).
+
+data:
+  context_length: 240     # L: minutes of context
+  horizon: 60             # H: forecast horizon in minutes
+  norm_window: 1440       # rolling z-score window (minutes)
+  max_gap_bars: 5
+
+model:
+  encoder_dim: 128
+  encoder_heads: 4
+  encoder_layers: 4
+  encoder_dropout: 0.1
+  velocity_hidden: 256
+  velocity_layers: 6
+  time_emb_dim: 128
+
+train:
+  learning_rate: 3.0e-4
+  weight_decay: 1.0e-4
+  warmup_steps: 1000
+  # DESIGN: batch_size=1024 was tuned to fill A100-80GB memory, not for
+  # statistical reasons. Use 512 for A100-40GB, 256 for V100.
+  batch_size: 1024
+  num_steps: 50000
+  ema_half_life_frac: 0.1
+  precision: auto
+  log_every: 500
+  val_every: 500
+  checkpoint_every: 5000
+  seed: 42
+
+sampler:
+  solver: heun
+  n_steps: 50
+  n_samples: 1000
+
+verify:
+  forecast_stride: 5
+  lead_times_for_diag: [1, 5, 15, 30, 60]

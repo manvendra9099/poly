@@ -1,0 +1,45 @@
+# btcfm small configuration — CPU smoke-test, full pipeline < 2 min.
+#
+# Smoke-test config. Underdispersed by design. Calibration claims must
+# cite default.yaml only.
+#
+# WARNING: small.yaml is for CI and smoke-tests ONLY.
+# No calibration claim may cite numbers produced from this config.
+# See default.yaml for research-grade dimensions.
+
+data:
+  context_length: 60
+  horizon: 30
+  norm_window: 360
+  max_gap_bars: 5
+
+model:
+  encoder_dim: 32
+  encoder_heads: 2
+  encoder_layers: 2
+  encoder_dropout: 0.1
+  velocity_hidden: 64
+  velocity_layers: 3
+  time_emb_dim: 32
+
+train:
+  learning_rate: 3.0e-4
+  weight_decay: 1.0e-4
+  warmup_steps: 20
+  batch_size: 32
+  num_steps: 200
+  ema_half_life_frac: 0.1
+  precision: auto
+  log_every: 50
+  val_every: 50
+  checkpoint_every: 100
+  seed: 42
+
+sampler:
+  solver: heun
+  n_steps: 10
+  n_samples: 100
+
+verify:
+  forecast_stride: 5
+  lead_times_for_diag: [1, 5, 15, 30]

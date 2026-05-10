@@ -1,0 +1,62 @@
+{
+  "run_id": "e308ec96fbb3",
+  "config_hash": "e308ec96fbb3",
+  "git_sha": "unknown",
+  "seed": 42,
+  "precision": "fp32",
+  "compute_dtype": "fp32",
+  "batch_size": 32,
+  "num_steps": 200,
+  "ema_decay": 0.9659363289248456,
+  "ema_half_life_frac": 0.1,
+  "num_features": 15,
+  "jax_version": "0.10.0",
+  "gpu_device": "cpu",
+  "xla_flags": "",
+  "config": {
+    "data": {
+      "context_length": 60,
+      "horizon": 30,
+      "norm_window": 360,
+      "max_gap_bars": 5
+    },
+    "model": {
+      "encoder_dim": 32,
+      "encoder_heads": 2,
+      "encoder_layers": 2,
+      "encoder_dropout": 0.1,
+      "velocity_hidden": 64,
+      "velocity_layers": 3,
+      "time_emb_dim": 32
+    },
+    "train": {
+      "learning_rate": 0.0003,
+      "weight_decay": 0.0001,
+      "warmup_steps": 20,
+      "batch_size": 32,
+      "num_steps": 200,
+      "ema_half_life_frac": 0.1,
+      "precision": "auto",
+      "log_every": 50,
+      "val_every": 50,
+      "checkpoint_every": 100,
+      "seed": 42
+    },
+    "sampler": {
+      "solver": "heun",
+      "n_steps": 10,
+      "n_samples": 100
+    },
+    "verify": {
+      "forecast_stride": 5,
+      "lead_times_for_diag": [
+        1,
+        5,
+        15,
+        30
+      ]
+    }
+  },
+  "data": "synthetic_gaussian_mixture",
+  "jaxlib_version": "0.10.0"
+}
