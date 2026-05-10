@@ -18,7 +18,9 @@
 # =============================================================================
 
 #$ -N btcfm-train          # Job name
-#$ -q gpu                  # GPU queue (provides 1 GPU per job)
+#$ -q gpu                  # GPU queue — -q gpu is all that is needed to get a GPU.
+                           # 8h walltime exceeds webern07's 2h cap, so the scheduler
+                           # will route this to an A100 node automatically.
 #$ -pe smp 8               # 8 CPU cores (shared-memory parallel environment)
 #$ -l h_rt=08:00:00        # Walltime limit (HH:MM:SS)
 #$ -l h_vmem=4G            # Memory per slot: 4G × 8 slots = 32G total

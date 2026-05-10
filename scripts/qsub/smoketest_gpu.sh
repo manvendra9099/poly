@@ -17,7 +17,10 @@
 # =============================================================================
 
 #$ -N btcfm-smoke          # Job name
-#$ -q gpu                  # GPU queue (2 concurrent job slots; provides 1 GPU)
+#$ -q gpu                  # GPU queue — -q gpu is all that is needed to get a GPU.
+                           # No -l gpu=N directive exists on CCuB; queue membership
+                           # implies GPU access.  Short jobs (<2h) may land on
+                           # webern07 (V100); longer jobs go to A100 nodes.
 #$ -pe smp 4               # 4 CPU cores (shared-memory parallel environment)
 #$ -l h_rt=00:30:00        # Walltime limit (HH:MM:SS)
 #$ -l h_vmem=2G            # Memory per slot: 2G × 4 slots = 8G total
