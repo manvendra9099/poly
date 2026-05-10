@@ -69,18 +69,27 @@ echo "[setup] Modules loaded."
 echo "        Python : $(python --version)"
 
 # ---------------------------------------------------------------------------
-# 2. Install JAX with CUDA 12 bundled (includes cuDNN via pip packages)
+# 2. Install JAX 0.4.30 with CUDA 12 bundled (includes cuDNN via pip packages)
 #
-#    cuda12_pip bundles the CUDA 12 and cuDNN libraries alongside the
-#    jaxlib wheel — no separate cuDNN module is required.
+#    We pin to JAX 0.4.30 for two reasons:
+#      a) The cuda12_pip extra (which bundles cuDNN alongside jaxlib) was
+#         present in the 0.4.x series.  In JAX 0.5.0+ the extra was removed
+#         and the CUDA install mechanism changed.
+#      b) JAX 0.5.0+ pulls flax 0.10+ → orbax-checkpoint ≥ 0.5.0 →
+#         tensorstore, which requires Bazel 8+ and GLIBC 2.25.  CentOS 7
+#         only has GLIBC 2.17, so tensorstore cannot be installed on this
+#         cluster.  JAX 0.4.30 + flax 0.8.x avoid this entirely.
+#
+#    cuda12_pip bundles the CUDA 12 and cuDNN libraries as pip packages
+#    alongside jaxlib — no separate cuDNN module is required.
 #    Only the NVIDIA GPU driver (libcuda.so) must exist at runtime, which
 #    is always present on GPU compute nodes.
-#
-#    Do NOT pin to jax==0.4.30 here: that version targeted CUDA 11.
-#    Let pip install the latest JAX that supports Python 3.11 + CUDA 12.
 # ---------------------------------------------------------------------------
-echo "[setup] Installing JAX with CUDA 12 (cuda12_pip)..."
-pip install --user "jax[cuda12_pip]" \
+echo "[setup] Removing any previously installed jax/jaxlib..."
+pip uninstall -y jax jaxlib 2>/dev/null || true
+
+echo "[setup] Installing JAX 0.4.30 with CUDA 12 (cuda12_pip)..."
+pip install --user "jax[cuda12_pip]==0.4.30" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 
 # ---------------------------------------------------------------------------

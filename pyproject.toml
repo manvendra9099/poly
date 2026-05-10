@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "Conditional flow-matching for intraday BTC/USD probabilistic forecasting"
 requires-python = ">=3.11"
 dependencies = [
-    "jax>=0.4.26",
-    "jaxlib>=0.4.26",
-    "flax>=0.8.0",
+    "jax>=0.4.26,<0.5.0",
+    "jaxlib>=0.4.26,<0.5.0",
+    "flax>=0.8.0,<0.9.0",
     "optax>=0.2.0",
     "numpy>=1.26",
     "polars>=1.40,<2",

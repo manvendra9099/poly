@@ -3,22 +3,29 @@
 # JAX is NOT listed here — it must be installed BEFORE this file.
 # On CCuB (Python 3.11 + CUDA 12, no standalone cuDNN module):
 #
-#   pip install --user "jax[cuda12_pip]" \
+#   pip install --user "jax[cuda12_pip]==0.4.30" \
 #       -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 #
-# cuda12_pip bundles cuDNN alongside the jaxlib wheel — no cuDNN module needed.
-# Only the GPU driver (libcuda.so) must be present, which is always true on
-# GPU compute nodes.
+# WHY 0.4.30?
+#   - The cuda12_pip extra (bundles cuDNN via pip) existed in JAX 0.4.x.
+#     In JAX 0.5.0+ this extra was removed; newer JAX uses a different
+#     CUDA install mechanism that is not yet reliable on CCuB.
+#   - JAX 0.5.0+ → flax 0.9.0+ → orbax-checkpoint ≥ 0.5.0 → tensorstore,
+#     which requires Bazel 8+ / GLIBC 2.25.  CentOS 7 has GLIBC 2.17.
+#     JAX 0.4.30 + flax 0.8.x avoid this dependency chain entirely.
 #
 # After installing JAX, run:
 #   pip install --user -r requirements.txt
 #   pip install --user --no-deps -e .
 
-flax>=0.8.0
+# <0.9.0: flax 0.9+ pulls orbax-checkpoint ≥ 0.5.0 which requires tensorstore.
+# tensorstore needs Bazel 8 (GLIBC 2.25) and cannot build on CentOS 7 (GLIBC 2.17).
+# flax 0.8.x uses orbax-checkpoint 0.4.x which has no tensorstore dependency.
+flax>=0.8.0,<0.9.0
 optax>=0.2.0
 numpy>=1.26
 polars>=1.40,<2
-# <18.0: pyarrow 18+ dropped pre-built cp311 manylinux wheels on this platform;
+# <18.0: pyarrow 18+ dropped pre-built cp311 manylinux2014 wheels;
 #         building from source requires Rust (not available on CCuB).
 pyarrow>=14.0,<18.0
 requests>=2.31
