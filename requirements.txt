@@ -1,32 +1,27 @@
 # btcfm runtime requirements
 #
-# JAX is NOT listed here — it must be installed BEFORE this file.
-# On CCuB (Python 3.11 + CUDA 12, no standalone cuDNN module):
+# On CCuB, do NOT run: pip install -r requirements.txt
+# Use setup_ccub.sh instead, which installs everything in ONE pip invocation.
 #
-#   pip install --user "jax[cuda12_pip]==0.4.30" \
-#       -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# WHY ONE INVOCATION?
+#   If jax[cuda12_pip]==0.4.30 is installed first and -r requirements.txt
+#   runs separately, pip re-resolves from scratch.  It then sees:
+#     optax 0.2.8  → jaxlib>=0.5.3  (conflicts with jaxlib 0.4.30)
+#   and upgrades jaxlib to the CPU 0.7.0 build, silently discarding CUDA.
+#   A single pip call sees jax==0.4.30's jaxlib<=0.4.30 constraint from the
+#   start and picks versions of optax/flax that are compatible with it.
 #
-# WHY 0.4.30?
-#   - The cuda12_pip extra (bundles cuDNN via pip) existed in JAX 0.4.x.
-#     In JAX 0.5.0+ this extra was removed; newer JAX uses a different
-#     CUDA install mechanism that is not yet reliable on CCuB.
-#   - JAX 0.5.0+ → flax 0.9.0+ → orbax-checkpoint ≥ 0.5.0 → tensorstore,
-#     which requires Bazel 8+ / GLIBC 2.25.  CentOS 7 has GLIBC 2.17.
-#     JAX 0.4.30 + flax 0.8.x avoid this dependency chain entirely.
-#
-# After installing JAX, run:
-#   pip install --user -r requirements.txt
-#   pip install --user --no-deps -e .
+# KEY VERSION CONSTRAINTS (all enforced in setup_ccub.sh):
+#   jax[cuda12_pip]==0.4.30    — last JAX 0.4.x with cuda12_pip extra
+#   flax>=0.8.0,<0.9.0         — 0.9.0+ requires newer jaxlib
+#   orbax-checkpoint<0.5.0     — 0.5.0+ requires tensorstore (Bazel/GLIBC 2.25)
+#   pyarrow>=14.0,<18.0        — 18.0 dropped cp311 manylinux2014 wheels
 
-# <0.9.0: flax 0.9+ pulls orbax-checkpoint ≥ 0.5.0 which requires tensorstore.
-# tensorstore needs Bazel 8 (GLIBC 2.25) and cannot build on CentOS 7 (GLIBC 2.17).
-# flax 0.8.x uses orbax-checkpoint 0.4.x which has no tensorstore dependency.
 flax>=0.8.0,<0.9.0
+orbax-checkpoint<0.5.0
 optax>=0.2.0
 numpy>=1.26
 polars>=1.40,<2
-# <18.0: pyarrow 18+ dropped pre-built cp311 manylinux2014 wheels;
-#         building from source requires Rust (not available on CCuB).
 pyarrow>=14.0,<18.0
 requests>=2.31
 websockets>=12.0

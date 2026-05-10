@@ -88,17 +88,40 @@ echo "        Python : $(python --version)"
 echo "[setup] Removing any previously installed jax/jaxlib..."
 pip uninstall -y jax jaxlib 2>/dev/null || true
 
-echo "[setup] Installing JAX 0.4.30 with CUDA 12 (cuda12_pip)..."
-pip install --user "jax[cuda12_pip]==0.4.30" \
+# ---------------------------------------------------------------------------
+# 3. Install JAX + all runtime deps in ONE pip invocation
+#
+#    This is critical.  If jax[cuda12_pip]==0.4.30 is installed first and
+#    then the rest are installed separately, pip re-resolves from scratch and
+#    sees optax 0.2.8 requiring jaxlib>=0.5.3, which forces an upgrade of
+#    jaxlib to the CPU 0.7.0 build, overwriting the CUDA wheel.
+#
+#    With a single pip call, the resolver sees jax==0.4.30's constraint
+#    (jaxlib<=0.4.30,>=0.4.27) from the start and is forced to pick
+#    optax/flax/orbax versions compatible with that bound.
+#
+#    orbax-checkpoint<0.5.0  — versions ≥0.5.0 require tensorstore, which
+#    needs Bazel 8 / GLIBC 2.25.  CentOS 7 has GLIBC 2.17.
+#
+#    The -f flag is required: CUDA jaxlib wheels are not on PyPI.
+# ---------------------------------------------------------------------------
+echo "[setup] Installing JAX 0.4.30 (cuda12_pip) + all runtime deps..."
+pip install --user \
+    "jax[cuda12_pip]==0.4.30" \
+    "flax>=0.8.0,<0.9.0" \
+    "orbax-checkpoint<0.5.0" \
+    "optax>=0.2.0" \
+    "numpy>=1.26" \
+    "polars>=1.40,<2" \
+    "pyarrow>=14.0,<18.0" \
+    "requests>=2.31" \
+    "websockets>=12.0" \
+    "pyyaml>=6.0" \
+    "pydantic>=2.0" \
+    "matplotlib>=3.8" \
+    "pytest>=8.0" \
+    "pytest-asyncio>=0.23" \
     -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-
-# ---------------------------------------------------------------------------
-# 3. Install remaining runtime dependencies
-#    requirements.txt intentionally excludes jax/jaxlib to avoid overwriting
-#    the cuda12 build with a CPU-only wheel.
-# ---------------------------------------------------------------------------
-echo "[setup] Installing runtime dependencies..."
-pip install --user -r requirements.txt
 
 # ---------------------------------------------------------------------------
 # 4. Install the btcfm package in editable mode
